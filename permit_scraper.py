@@ -14,23 +14,30 @@ def get_permits(days_back=1):
     since_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
     zip_list = ",".join(f"'{z}'" for z in TARGET_ZIPS)
 
+    # Minimal safe query using only confirmed columns
     query = (
-        f"SELECT permitnumber, address, zip, typeofwork, description, "
-        f"contractorname, opa_account_num, approvedscope, permitissuedate, status, "
-        f"ST_Y(the_geom) AS lat, ST_X(the_geom) AS lng "
-        f"FROM permits "
+        "SELECT permitnumber, address, zip, typeofwork, description, "
+        "contractorname, approvedscope, permitissuedate, "
+        "ST_Y(the_geom) AS lat, ST_X(the_geom) AS lng "
+        "FROM permits "
         f"WHERE zip IN ({zip_list}) "
         f"AND permitissuedate >= '{since_date}' "
-        f"AND typeofwork IS NOT NULL "
-        f"ORDER BY permitissuedate DESC "
-        f"LIMIT 500"
+        "ORDER BY permitissuedate DESC "
+        "LIMIT 500"
     )
 
     try:
-        resp = requests.get(PERMITS_API, params={"q": query, "format": "json"}, timeout=30)
-        resp.raise_for_status()
-        rows = resp.json().get("rows", [])
+        resp = requests.get(
+            PERMITS_API,
+            params={"q": query, "format": "json"},
+            timeout=30
+        )
+        print(f"  API status: {resp.status_code}")
+        if resp.status_code != 200:
+            print(f"  API error: {resp.text[:500]}")
+            return []
 
+        rows = resp.json().get("rows", [])
         permits = []
         for row in rows:
             t = str(row.get("typeofwork", "")).upper()
@@ -59,10 +66,9 @@ def get_permits(days_back=1):
                 "type_of_work":  row.get("typeofwork", ""),
                 "description":   row.get("description", ""),
                 "contractor":    row.get("contractorname", ""),
-                "opa_account":   row.get("opa_account_num", ""),
                 "scope":         row.get("approvedscope", ""),
                 "issue_date":    issue_date,
-                "status":        row.get("status", ""),
+                "status":        "",
                 "lat":           row.get("lat"),
                 "lng":           row.get("lng"),
                 "scraped_at":    datetime.utcnow().isoformat()
