@@ -27,12 +27,6 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run deals pipeline
-        env:
-          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
-          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-        run: python main.py
-
       - name: Run permit pipeline
         env:
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
@@ -50,8 +44,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: latest-results-${{ github.run_number }}
-          path: |
-            latest_results.json
-            latest_permits.json
+          name: latest-permits-${{ github.run_number }}
+          path: latest_permits.json
           retention-days: 7
