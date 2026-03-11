@@ -14,9 +14,8 @@ def get_permits(days_back=1):
     since_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
     zip_list = ",".join(f"'{z}'" for z in TARGET_ZIPS)
 
-    # Minimal safe query using only confirmed columns
     query = (
-        "SELECT permitnumber, address, zip, typeofwork, description, "
+        "SELECT permitnumber, address, zip, typeofwork, "
         "contractorname, approvedscope, permitissuedate, "
         "ST_Y(the_geom) AS lat, ST_X(the_geom) AS lng "
         "FROM permits "
@@ -27,11 +26,7 @@ def get_permits(days_back=1):
     )
 
     try:
-        resp = requests.get(
-            PERMITS_API,
-            params={"q": query, "format": "json"},
-            timeout=30
-        )
+        resp = requests.get(PERMITS_API, params={"q": query, "format": "json"}, timeout=30)
         print(f"  API status: {resp.status_code}")
         if resp.status_code != 200:
             print(f"  API error: {resp.text[:500]}")
@@ -64,7 +59,7 @@ def get_permits(days_back=1):
                 "zip":           str(row.get("zip", "")).strip(),
                 "permit_type":   ptype,
                 "type_of_work":  row.get("typeofwork", ""),
-                "description":   row.get("description", ""),
+                "description":   "",
                 "contractor":    row.get("contractorname", ""),
                 "scope":         row.get("approvedscope", ""),
                 "issue_date":    issue_date,
